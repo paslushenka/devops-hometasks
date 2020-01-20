@@ -1,0 +1,47 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "debian/buster64"
+
+  config.vm.define "web1" do |web1|
+
+    web1.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
+    web1.vm.network "private_network", ip: "172.31.1.80"
+
+    web1.vm.provider "virtualbox" do |vb|
+        vb.name = "web1_static"
+        vb.memory = "512"
+    end
+
+     web1.vm.provision "shell", inline: <<-SHELL
+        sudo apt-get install -y apache2
+        sudo chmod 775 /var/www/html
+        sudo chown -R root:vagrant /var/www/html
+        sudo cp /vagrant/index.html /var/www/html
+        sudo systemctl enable apache2
+        sudo systemctl start apache2
+     SHELL
+  end
+
+  config.vm.define "web2" do |web2|
+
+    web2.vm.network "forwarded_port", guest: 80, host: 8081, host_ip: "127.0.0.1"
+    web2.vm.network "private_network", ip: "172.31.1.81"
+
+    web2.vm.provider "virtualbox" do |vb|
+      vb.name = "web2_dynamic"
+      vb.memory = "512"
+    end
+
+    web2.vm.provision "shell", inline: <<-SHELL
+        sudo apt-get install -y apache2 php libapache2-mod-php
+        sudo chmod 775 /var/www/html
+        sudo chown -R root:vagrant /var/www/html
+        sudo rm /var/www/html/index.html
+        sudo cp /vagrant/index.php /var/www/html
+        sudo systemctl enable apache2
+        sudo systemctl start apache2
+    SHELL
+  end
+end
