@@ -1,0 +1,24 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "taksama/centos8-lamp"
+  config.vm.box_version = "1.0.2"
+  config.vm.hostname = "centos8"
+
+  config.vm.define "web_ansible" do |web_ansible|
+    web_ansible.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
+    web_ansible.vm.network "forwarded_port", guest: 81, host: 8081, host_ip: "127.0.0.1"
+    web_ansible.vm.network "private_network", ip: "172.31.3.10"
+
+    web_ansible.vm.provider "virtualbox" do |vb|
+      vb.name = "web_ansible"
+      vb.memory = "512"
+    end
+
+    web_ansible.vm.provision "ansible_local" do |ansible|
+      ansible.playbook = "playbook.yaml"
+      ansible.become = true
+    end
+  end
+end

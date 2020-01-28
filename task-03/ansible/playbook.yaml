@@ -1,0 +1,60 @@
+---
+- name: Configure web_ansible
+  hosts: all
+
+  tasks:
+    - name: disable key check
+      become: yes
+      ini_file:
+        path: /etc/ansible/ansible.cfg
+        section: defaults
+        option: host_key_checking
+        value: False
+
+    - name: Install package
+      yum:
+        name:
+          - sshpass
+        state: present
+
+    - name: create directory if they don't exist
+      file:
+        path: "{{ item }}"
+        state: directory
+      with_items:
+        - /var/www/web1.org/html
+        - /var/www/web2.org/html
+
+    - name: copy index.html
+      copy:
+        src: /vagrant/index.html
+        dest: /var/www/web1.org/html/index.html
+
+    - name: copy index.php
+      copy:
+        src: /vagrant/index.php
+        dest: /var/www/web2.org/html/index.php
+
+    - name:
+      file:
+        path: /var/www
+        mode: 0775
+        recurse: yes
+        
+    - name: Add Apache port 81
+      lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^Listen 81'
+        insertafter: '^Listen 80'
+        line: 'Listen 81'
+        state: present
+ 
+    - name: copy web.conf
+      copy:
+        src: /vagrant/web.conf
+        dest: /etc/httpd/conf.d/web.conf
+
+    - name: Restart service httpd
+      service:
+        name: httpd
+        state: restarted
