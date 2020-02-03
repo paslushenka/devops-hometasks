@@ -61,11 +61,13 @@
         path: /etc/puppetlabs/r10k
         state: directory
         mode: '0775'
+        recurse: yes
     - name: Directory /etc/puppetlabs/pupper
       file:
         path: /etc/puppetlabs/puppet
         state: directory
         mode: '0775'
+        recurse: yes
     - name: Directory /var/cache/r10k
       file:
         path: /var/cache/r10k
@@ -112,11 +114,18 @@
         path: /etc/puppetlabs/puppet
         state: directory
         mode: '0775'        
+        recurse: yes
+    - name: Set the permissions (puppet.sh, 0644)
+      file:
+        path: /etc/profile.d/puppet.sh
+        state: touch
+        mode: u=rw,g=r,o=r
     - name: Puppet-Agent (restart service)
       systemd:
         state: restarted
         daemon_reload: yes
         name: puppet
+
 - name: --= Configure mineserver =--
   hosts: mineserver
   become: yes
