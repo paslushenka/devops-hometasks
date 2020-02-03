@@ -1,0 +1,128 @@
+---
+- name: --= Configure all hosts =--
+  hosts: all
+  become: yes
+  tasks:
+    - name: Disable key check
+      ini_file:
+        path: /etc/ansible/ansible.cfg
+        section: defaults
+        option: host_key_checking
+        value: 'False'
+    - name: Install packages (mc, nano, sshpass)
+      yum:
+        name:
+          - mc
+          - nano
+          - sshpass
+        state: present
+    - name: Configure resolving
+      blockinfile:
+        path: /etc/hosts
+        block: |
+          172.31.4.20 master.puppet
+          172.31.4.10 slave1.puppet
+          172.31.4.11 slave2.puppet
+          172.31.4.12 mineserver.puppet
+    - name: Add EPEL repository
+      yum:
+        name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        state: present
+    - name: Add Puppet repository
+      yum:
+        name: https://yum.puppetlabs.com/puppet-release-el-8.noarch.rpm
+        state: present    
+    - name: Set TimeZone
+      command: /usr/bin/timedatectl set-timezone Europe/Minsk
+    - name: Path for sudo (/opt/puppetlabs/puppet/bin)
+      replace:
+        path: /etc/sudoers
+        regexp: 'Defaults    secure_path = /sbin:/bin:/usr/sbin:/usr/bin'
+        replace: 'Defaults    secure_path = /sbin:/bin:/usr/sbin:/usr/bin:/opt/puppetlabs/puppet/bin:/opt/puppetlabs/bin'
+
+- name: --= Configure puppet-master =--
+  hosts: master
+  become: yes
+  tasks:
+    - name: Install packages (nmap, git, pupperserver)
+      yum:
+        name:
+          - nmap
+          - git
+          - puppetserver
+        state: present
+    - name: Set Java memory (1Gb) -> puppetserver
+      replace:
+        path: /etc/sysconfig/puppetserver
+        regexp: '-Xms2g -Xmx2g'
+        replace: '-Xms1g -Xmx1g'
+    - name: Directory /etc/puppetlabs/r10k
+      file:
+        path: /etc/puppetlabs/r10k
+        state: directory
+        mode: '0775'
+    - name: Directory /etc/puppetlabs/pupper
+      file:
+        path: /etc/puppetlabs/puppet
+        state: directory
+        mode: '0775'
+    - name: Directory /var/cache/r10k
+      file:
+        path: /var/cache/r10k
+        state: directory
+        mode: '2775'
+    - name: Install r10k & deploy environment
+      shell: |
+        /opt/puppetlabs/puppet/bin/gem install r10k
+        /opt/puppetlabs/puppet/bin/r10k deploy environment -p
+    - name: PuppetServer (enable service)
+      systemd:
+        name: puppetserver
+        enabled: yes
+    - name: Puppet-Agent (enable service)
+      systemd:
+        name: puppet
+        enabled: yes
+    - name: PuppetServer (restart service)
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: puppetserver
+    - name: Puppet-Agent (restart service)
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: puppet
+
+- name: --= Configure puppet-agents =--
+  hosts: slaves
+  become: yes
+  tasks:
+    - name: Install packages (puppet-agent)
+      yum:
+        name:
+          - puppet-agent
+        state: present
+    - name: Puppet-Agent (enable service)
+      systemd:
+        name: puppet
+        enabled: yes
+    - name: Directory /etc/puppetlabs/pupper
+      file:
+        path: /etc/puppetlabs/puppet
+        state: directory
+        mode: '0775'        
+    - name: Puppet-Agent (restart service)
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: puppet
+- name: --= Configure mineserver =--
+  hosts: mineserver
+  become: yes
+  tasks:
+    - name: Install packages
+      yum:
+        name:
+          - htop
+        state: present

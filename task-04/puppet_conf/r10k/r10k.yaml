@@ -1,0 +1,6 @@
+---
+:cachedir: '/var/cache/r10k'
+:sources:
+  :my-org:
+    remote: 'https://github.com/paslushenka/pp_conf.git'
+    basedir: '/etc/puppetlabs/code/environments'
