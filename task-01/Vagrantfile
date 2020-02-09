@@ -1,47 +1,39 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+$script = <<-'SCRIPT'
+sudo apt-get update
+sudo apt-get -y install apache2 libapache2-mod-php php php-cgi php-cli php-fpm 
+
+sudo rm /etc/apache2/sites-{available,enabled}/000-default.conf
+sudo mkdir -pv /var/www/web{1,2}.org/html /etc/apache2/logs
+sudo chmod 775 /var/www
+sudo cp files/index.html /var/www/web1.org/html
+sudo cp files/index.php /var/www/web2.org/html
+sudo cp files/web{1,2}.conf /etc/apache2/sites-available
+sudo ln -s /etc/apache2/sites-available/web{1,2}.conf /etc/apache2/sites-enabled/
+sudo sed -i '/Listen 80/a Listen 81' /etc/apache2/ports.conf
+sudo systemctl enable apache2
+sudo systemctl restart apache2
+sudo chown -R www-data: /var/www
+SCRIPT
+
 Vagrant.configure("2") do |config|
   config.vm.box = "debian/buster64"
-
-  config.vm.define "web1" do |web1|
-
-    web1.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
-    web1.vm.network "private_network", ip: "172.31.1.80"
-
-    web1.vm.provider "virtualbox" do |vb|
-        vb.name = "web1_static"
-        vb.memory = "512"
-    end
-
-     web1.vm.provision "shell", inline: <<-SHELL
-        sudo apt-get install -y apache2
-        sudo chmod 775 /var/www/html
-        sudo chown -R root:vagrant /var/www/html
-        sudo cp /vagrant/index.html /var/www/html
-        sudo systemctl enable apache2
-        sudo systemctl start apache2
-     SHELL
+  if Vagrant.has_plugin?("vagrant-vbguest")
+    config.vbguest.auto_update = false
   end
 
-  config.vm.define "web2" do |web2|
+  config.vm.define "web" do |web|
+    web.vm.synced_folder "files", "/home/vagrant/files", type: "rsync"
+    web.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
+    web.vm.network "forwarded_port", guest: 81, host: 8081, host_ip: "127.0.0.1"
+    web.vm.network "private_network", ip: "172.31.100.21"
 
-    web2.vm.network "forwarded_port", guest: 80, host: 8081, host_ip: "127.0.0.1"
-    web2.vm.network "private_network", ip: "172.31.1.81"
-
-    web2.vm.provider "virtualbox" do |vb|
-      vb.name = "web2_dynamic"
-      vb.memory = "512"
+    web.vm.provider "virtualbox" do |vb|
+        vb.name = "web"
+        vb.memory = "256"
     end
-
-    web2.vm.provision "shell", inline: <<-SHELL
-        sudo apt-get install -y apache2 php libapache2-mod-php
-        sudo chmod 775 /var/www/html
-        sudo chown -R root:vagrant /var/www/html
-        sudo rm /var/www/html/index.html
-        sudo cp /vagrant/index.php /var/www/html
-        sudo systemctl enable apache2
-        sudo systemctl start apache2
-    SHELL
+    config.vm.provision "shell", inline: $script
   end
 end
