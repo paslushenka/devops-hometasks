@@ -1,0 +1,73 @@
+---
+- name: Role 'ansible-jenkins'
+  debug:
+    msg: "Role 'ansible-jenkins'"
+- name: Install (default-jdk, git, build-essential, jq)
+  apt:
+    pkg:
+    - default-jdk
+    - git
+    - build-essential
+    - jq
+    state: present
+    update_cache: true
+- name: Set JAVA_HOME
+  become: yes
+  shell: |
+    echo 'export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64' > /etc/profile.d/jdk.sh
+    echo 'export PATH=$JAVA_HOME/bin:$PATH' >> /etc/profile.d/jdk.sh
+    source /etc/profile.d/jdk.sh
+    exit 0
+- name: Set Jenkins repo-list
+  become: yes
+  shell: |
+    wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
+    sudo sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+    exit 0
+  args:
+    warn: no
+- name: Install (jenkins)
+  apt:
+    pkg:
+    - jenkins
+    state: present
+    update_cache: true
+- name: Set Jenkins
+  become: yes
+  include_role:
+    name: geerlingguy.jenkins
+  vars:
+    jenkins_hostname: jenkins
+    jenkins_plugins:
+      - golang
+      - git
+      - github
+      - nexus-artifact-uploader
+      - publish-over-ssh
+    jenkins_plugins_install_dependencies: true
+    jenkins_folders:
+      - dest: "{{ jenkins_home }}/jobs/BuildGo/"
+      - dest: "{{ jenkins_home }}/.ssl/"
+    jenkins_files:
+      - name: "golang config"
+        src: "/vagrant/files/jenkins/org.jenkinsci.plugins.golang.GolangBuildWrapper.xml"
+        dest: "{{ jenkins_home }}/org.jenkinsci.plugins.golang.GolangBuildWrapper.xml"
+      - name: "ssh-key"
+        src: "/vagrant/files/jenkins/id_rsa"
+        dest: "{{ jenkins_home }}/.ssl/id_rsa"
+      - name: "publish-over-ssh config"
+        src: "/vagrant/files/jenkins/jenkins.plugins.publish_over_ssh.BapSshPublisherPlugin.xml.j2"
+        dest: "{{ jenkins_home }}/jenkins.plugins.publish_over_ssh.BapSshPublisherPlugin.xml"
+      - name: "credentials plugin config"
+        src: "/vagrant/files/jenkins/credentials.xml"
+        dest: "{{ jenkins_home }}/credentials.xml"
+      - name: "jenkins secrets master.key"
+        src: "/vagrant/files/jenkins/master.key"
+        dest: "{{ jenkins_home }}/secrets/master.key"
+      - name: "jenkins secrets hudson.util.Secret"
+        src: "/vagrant/files/jenkins/hudson.util.Secret"
+        dest: "{{ jenkins_home }}/secrets/hudson.util.Secret"
+      - name: "job BuildGo config"
+        src: "/vagrant/files/jenkins/config.xml.j2"
+        dest: "{{ jenkins_home }}/jobs/BuildGo/config.xml"
+

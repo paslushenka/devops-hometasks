@@ -1,0 +1,27 @@
+---
+- name: Configure all hosts
+  hosts: common
+  become: yes
+  roles:
+    - common
+
+- name: Configure Jenkins
+  hosts: jenkins
+  become: yes
+  roles:
+    - ansible-jenkins
+    - geerlingguy.jenkins
+
+- name: Configure Nexus
+  hosts: nexus
+  become: yes
+  roles:
+    - nexus3-oss
+    - ansible-thoteam.nexus3-oss
+
+- name: Configure servers (staging, production)
+  hosts: server
+  become: yes
+  roles:
+    - server
+    - devoinc.systemd_service

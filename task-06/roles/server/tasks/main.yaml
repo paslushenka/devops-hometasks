@@ -1,0 +1,28 @@
+---
+- name: Role 'server'
+  debug:
+    msg: "Role 'server'"
+- name: Enable password authentification
+  become: yes
+  replace:
+    path: /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication no$'
+    replace: 'PasswordAuthentication yes'
+  notify:
+  - Restart sshd
+- name: Set directory for 'wordcloud'
+  file:
+    path: /opt/wordcloud/
+    state: directory
+    mode: '0755'
+    owner: vagrant
+- name: Set devoinc.systemd_service 'wordcloud'
+  become: yes
+  include_role:
+    name: devoinc.systemd_service
+  vars:
+    systemd_service:
+    wordcloud:
+      enabled: yes
+      exec_start: "/opt/wordcloud/word-cloud-generator"
+      wanted_by: "multi-user.target"

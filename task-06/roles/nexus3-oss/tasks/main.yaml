@@ -1,0 +1,58 @@
+---
+- name: Role 'nexus3-oss'
+  debug:
+    msg: "Role 'nexus3-oss'"
+- name: Install (default-jdk, gpg)
+  apt:
+    pkg:
+    - default-jdk
+    - gpg
+    state: present
+    update_cache: true
+- name: Set JAVA_HOME
+  become: yes
+  shell: |
+    echo 'export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64' > /etc/profile.d/jdk.sh
+    echo 'export PATH=$JAVA_HOME/bin:$PATH' >> /etc/profile.d/jdk.sh
+    source /etc/profile.d/jdk.sh
+    exit 0
+
+- name: Set 'nexus3-oss'
+  become: yes
+  include_role:
+    name: ansible-thoteam.nexus3-oss
+  vars:
+    nexus_admin_password: admin
+    nexus_repos_raw_hosted:
+      - name: word-cloud-generator
+        write_policy: ALLOW
+        blob_store: default
+        strict_content_validation: false
+    nexus_roles:
+      - id: word-cloud-generator-developpers
+        name: word-cloud-generator-developpers
+        description: ''
+        privileges:
+          - nx-repository-view-raw-word-cloud-generator-*
+        roles: []
+      - id: word-cloud-generator-reader
+        name: word-cloud-generator-reader
+        description: ''
+        privileges:
+          - nx-repository-view-raw-word-cloud-generator-read
+        roles: []
+    nexus_local_users:
+      - username: jenkins
+        first_name: Jenkins
+        last_name: CI
+        email: support@company.com
+        password: "{{ nexus_staging_production_password }}"
+        roles:
+          - word-cloud-generator-developpers
+      - username: staging_production
+        first_name: staging_production
+        last_name: CI
+        email: support@company.com
+        password: "{{ nexus_staging_production_password }}"
+        roles:
+          - word-cloud-generator-reader

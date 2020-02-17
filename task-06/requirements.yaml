@@ -1,0 +1,6 @@
+---
+- src: geerlingguy.jenkins
+
+- src: ansible-thoteam.nexus3-oss
+
+- src: devoinc.systemd_service

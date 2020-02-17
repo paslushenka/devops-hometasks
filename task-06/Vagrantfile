@@ -1,0 +1,40 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+hosts = { "jenkins.vm"    => { "ip" => "172.31.100.80", "in" => "8080", "out" => "8080", "mem" => 1024 },
+          "nexus.vm"      => { "ip" => "172.31.100.81", "in" => "8081", "out" => "8081", "mem" => 2048 },
+          "staging.vm"    => { "ip" => "172.31.100.21", "in" => "8888", "out" => "8088", "mem" => 512  },
+          "production.vm" => { "ip" => "172.31.100.22", "in" => "8888", "out" => "8089", "mem" => 512  }}
+
+Vagrant.configure("2") do |config|
+  if Vagrant.has_plugin?("vagrant-vbguest")
+    config.vbguest.auto_update = false
+  end
+
+  hosts.each do |name, value|
+    config.vm.define name do |machine|
+      machine.vm.box = "debian/buster64"
+      machine.vm.hostname = "%s" % name
+      machine.vm.network :private_network, ip: hosts[name]["ip"]
+      machine.vm.network "forwarded_port", guest: hosts[name]["in"], host: hosts[name]["out"], host_ip: "127.0.0.1"
+      machine.vm.provider "virtualbox" do |v|
+          v.name = name
+          v.customize ["modifyvm", :id, "--memory", hosts[name]["mem"]]
+      end
+    end
+  end
+
+  config.vm.provision 'write access to /etc/ansible/roles', type: :shell, inline: <<~'EOM'
+    sudo mkdir /etc/ansible/roles -p
+    sudo chmod o+w /etc/ansible/roles
+  EOM
+
+  config.vm.provision "ansible_local" do |ansible|
+    ansible.become = true
+    ansible.playbook = "playbook.yaml"
+    ansible.inventory_path = "inventory/hosts"
+    ansible.galaxy_role_file = "requirements.yaml"
+    ansible.galaxy_roles_path = "/etc/ansible/roles"
+    ansible.galaxy_command = "ansible-galaxy install --role-file=%{role_file} --roles-path=%{roles_path} --force"
+  end
+end
