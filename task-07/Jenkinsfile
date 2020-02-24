@@ -1,7 +1,7 @@
 pipeline {
     agent none
     tools {
-        go 'Go'
+        go 'Go 1.13.7'
         git 'Default'
     }
 
