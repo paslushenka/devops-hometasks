@@ -1,3 +1,12 @@
+void doDeploy(String configurationName){   
+    sshPublisher(publishers: [sshPublisherDesc(configName: configurationName, transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''sudo service wordcloud stop
+        curl -X GET -u admin:admin "http://192.168.50.11:8081/repository/word-cloud-generator/1/word-cloud-generator/1.$BUILD_NUMBER/word-cloud-generator-1.$BUILD_NUMBER.gz" -o /opt/wordcloud/word-cloud-generator.gz
+        gunzip /opt/wordcloud/word-cloud-generator.gz
+        chmod +x /opt/wordcloud/word-cloud-generator
+        sudo service wordcloud start
+    ''', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])    
+}
+
 pipeline {
     agent none
     tools {
@@ -65,12 +74,7 @@ pipeline {
         stage('Install -> staging.vm') {
             agent any
             steps {   
-                sshPublisher(publishers: [sshPublisherDesc(configName: 'staging', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''sudo service wordcloud stop
-                curl -X GET -u admin:admin "http://192.168.50.11:8081/repository/word-cloud-generator/1/word-cloud-generator/1.$BUILD_NUMBER/word-cloud-generator-1.$BUILD_NUMBER.gz" -o /opt/wordcloud/word-cloud-generator.gz
-                gunzip /opt/wordcloud/word-cloud-generator.gz
-                chmod +x /opt/wordcloud/word-cloud-generator
-                sudo service wordcloud start
-                ''', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])    
+                doDeploy('staging')
             }
         }
         stage('Run parallel on staging.vm'){
@@ -92,12 +96,7 @@ pipeline {
         stage('Install app on production.vm') {
             agent any
             steps {   
-                sshPublisher(publishers: [sshPublisherDesc(configName: 'production', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''sudo service wordcloud stop
-                curl -X GET -u admin:admin "http://192.168.50.11:8081/repository/word-cloud-generator/1/word-cloud-generator/1.$BUILD_NUMBER/word-cloud-generator-1.$BUILD_NUMBER.gz" -o /opt/wordcloud/word-cloud-generator.gz
-                gunzip /opt/wordcloud/word-cloud-generator.gz
-                chmod +x /opt/wordcloud/word-cloud-generator
-                sudo service wordcloud start
-                ''', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])    
+                doDeploy('production')
             }
         }
     }
