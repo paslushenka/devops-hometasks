@@ -1,0 +1,18 @@
+FROM debian:buster
+SHELL ["/bin/bash", "-c"]
+RUN apt-get update \
+ && echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections \
+ && apt-get install -y curl gnupg2 apt-utils apt-transport-https ca-certificates software-properties-common ansible 
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add - \
+ && add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+COPY ./files/jenkins/playbook.yaml /scripts/playbook.yaml
+RUN ansible-galaxy install geerlingguy.java \
+ && ansible-galaxy install geerlingguy.jenkins \
+ && ansible-playbook /scripts/playbook.yaml
+RUN apt-get update \
+ && apt-get install -y docker-ce docker-ce-cli containerd.io \
+ && usermod -a -G docker jenkins
+COPY ./files/jenkins/entry_script.sh /scripts/entry_script.sh
+RUN chmod +x /scripts/entry_script.sh
+RUN mkdir -p /var/lib/jenkins/workspace && chmod 777 /var/lib/jenkins/workspace
+ENTRYPOINT /scripts/entry_script.sh

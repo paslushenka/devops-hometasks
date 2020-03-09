@@ -1,0 +1,36 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+hosts = { "docker.vm" => { "mem" => 4096, "cpu" => 2, "disk" => "16GB" }}
+vmnet = { "docker.n1"  => { "in" => "80",   "out" => "8080" },
+          "docker.n2"  => { "in" => "8081", "out" => "8081" }}
+
+Vagrant.configure("2") do |config|
+    if Vagrant.has_plugin?("vagrant-vbguest")
+        config.vbguest.auto_update = false
+    end
+    config.vagrant.plugins = "vagrant-disksize"
+
+    hosts.each do |name, value|
+        config.vm.define name do |machine|
+            machine.vm.box = "ubuntu/bionic64"
+            machine.vm.hostname = "%s" % name
+            machine.disksize.size = hosts[name]["disk"]
+
+
+            vmnet.each do |vm, value|
+                if vm.include?(name.sub(".vm", ""))
+                    machine.vm.network "forwarded_port", guest: vmnet[vm]["in"], host: vmnet[vm]["out"]
+                end
+            end
+
+            machine.vm.provider "virtualbox" do |vm|
+                vm.name   = name
+                vm.cpus   = hosts[name]["cpu"]
+                vm.memory = hosts[name]["mem"]
+            end
+
+            config.vm.provision "shell", path: "vagrant_" + name.sub(".vm", "") + ".sh"
+        end
+    end
+end

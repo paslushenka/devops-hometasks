@@ -1,0 +1,33 @@
+version: '3'
+services:
+  jenkins:
+    build:
+      context: ./
+      dockerfile: Dockerfile_jenkins
+    container_name: jenkins
+    networks: 
+      - itnet
+    ports: 
+      - "80:8080"
+    volumes: 
+      - ./files/jenkins/jobs/:/var/lib/jenkins/jobs/
+      - ./files/jenkins/master.key:/var/lib/jenkins/secrets/master.key
+      - ./files/jenkins/credentials.xml:/var/lib/jenkins/credentials.xml
+      - ./files/jenkins/hudson.util.Secret:/var/lib/jenkins/secrets/hudson.util.Secret
+      - /var/run/docker.sock:/var/run/docker.sock
+      - workspace:/var/lib/jenkins/workspace
+  nexus:
+    build:
+      context: ./
+      dockerfile: Dockerfile_nexus
+    ports:
+      - "8081:8081"  
+    volumes:
+      - /vagrant/:/vagrant/
+    networks:
+      - itnet
+    container_name: nexus
+networks:
+  itnet:
+volumes:
+  workspace:
