@@ -1,7 +1,7 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-hosts = { "docker.vm" => { "mem" => 4096, "cpu" => 2, "disk" => "16GB" }}
+hosts = { "docker.vm" => { "mem" => 4096, "cpu" => 2, "disk" => "20GB" }}
 vmnet = { "docker.n1"  => { "in" => "80",   "out" => "8080" },
           "docker.n2"  => { "in" => "8081", "out" => "8081" }}
 
